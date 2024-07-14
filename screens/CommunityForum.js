@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Button } from 'react-native';
+import { ref, push, set } from 'firebase/database';
+import { database } from '../firebaseConfig';
 
 const ForumPost = ({ author, time, title, description, tags }) => {
   return (
@@ -22,7 +24,7 @@ const ForumPost = ({ author, time, title, description, tags }) => {
   );
 };
 
-const App = () => {
+const CommunityForum = () => {
   const [posts, setPosts] = useState([
     {
       author: 'Norma Andrews',
@@ -31,76 +33,43 @@ const App = () => {
       description: 'Discussing strategies and practices for fostering meaningful community engagement in local neighborhoods.',
       tags: ['community', 'engagement', 'local'],
     },
-    {
-      author: 'Olive Francis',
-      time: '4 hours ago',
-      title: 'Volunteer Opportunities in Your Area',
-      description: 'A comprehensive guide to finding and participating in volunteer opportunities that benefit the community.',
-      tags: ['volunteer', 'community service', 'opportunities'],
-    },
-    {
-      author: 'Sam Taylor',
-      time: '1 day ago',
-      title: 'Hosting Successful Community Events',
-      description: 'Tips and tricks for organizing and hosting successful community events that encourage participation and interaction.',
-      tags: ['events', 'community', 'hosting'],
-    },
-    {
-      author: 'Alex Johnson',
-      time: '2 days ago',
-      title: 'Building a Stronger Community Through Collaboration',
-      description: 'Exploring ways to build stronger communities by encouraging collaboration and cooperation among members.',
-      tags: ['collaboration', 'community', 'strength'],
-    },
-    {
-      author: 'Jamie Lee',
-      time: '3 days ago',
-      title: 'Creating Inclusive Community Spaces',
-      description: 'Ideas and practices for creating community spaces that are inclusive and welcoming to everyone.',
-      tags: ['inclusion', 'spaces', 'community'],
-    },
-    {
-      author: 'Morgan Brown',
-      time: '4 days ago',
-      title: 'The Role of Social Media in Community Engagement',
-      description: 'Analyzing the impact of social media on community engagement and how to leverage it effectively.',
-      tags: ['social media', 'engagement', 'impact'],
-    },
-    {
-      author: 'Taylor Green',
-      time: '5 days ago',
-      title: 'Community Building Through Arts and Culture',
-      description: 'The importance of arts and culture in community building and how to promote it in local neighborhoods.',
-      tags: ['arts', 'culture', 'community'],
-    },
-    {
-      author: 'Jordan White',
-      time: '6 days ago',
-      title: 'Supporting Local Businesses to Strengthen Community Ties',
-      description: 'Ways to support local businesses and the positive impact it has on strengthening community ties.',
-      tags: ['local businesses', 'support', 'community'],
-    },
-    {
-      author: 'Casey Black',
-      time: '1 week ago',
-      title: 'Environmental Initiatives for Community Improvement',
-      description: 'Environmental initiatives and projects that can help improve the local community and promote sustainability.',
-      tags: ['environment', 'initiatives', 'sustainability'],
-    },
-    {
-      author: 'Riley Gray',
-      time: '1 week ago',
-      title: 'Youth Engagement in Community Development',
-      description: 'The importance of involving youth in community development and strategies to encourage their participation.',
-      tags: ['youth', 'engagement', 'development'],
-    },
   ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newPost, setNewPost] = useState({
+    author: '',
+    time: '',
+    title: '',
+    description: '',
+    tags: '',
+  });
+
+  const handleNewPost = async () => {
+    const postID = push(ref(database, 'homeowner/posts')).key;
+    const currentTime = new Date().toISOString();
+    const postData = {
+      author: newPost.author,
+      time: currentTime,
+      title: newPost.title,
+      description: newPost.description,
+      tags: newPost.tags.split(',').map(tag => tag.trim()),
+    };
+
+    try {
+      await set(ref(database, `homeowner/posts/${postID}`), postData);
+      setPosts([...posts, postData]);
+      setNewPost({ author: '', time: '', title: '', description: '', tags: '' });
+      setModalVisible(false);
+    } catch (error) {
+      console.error("Error saving new post: ", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Community Forum</Text>
-        <TouchableOpacity style={styles.newPostButton}>
+        <TouchableOpacity style={styles.newPostButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.newPostButtonText}>+</Text>
         </TouchableOpacity>
       </View>
@@ -123,6 +92,45 @@ const App = () => {
           <ForumPost key={index} {...post} />
         ))}
       </ScrollView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}
+      >
+        <View style={styles.modalView}>
+          <Text style={styles.modalTitle}>New Post</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Author"
+            value={newPost.author}
+            onChangeText={(text) => setNewPost({ ...newPost, author: text })}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Title"
+            value={newPost.title}
+            onChangeText={(text) => setNewPost({ ...newPost, title: text })}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Description"
+            value={newPost.description}
+            onChangeText={(text) => setNewPost({ ...newPost, description: text })}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Tags (comma separated)"
+            value={newPost.tags}
+            onChangeText={(text) => setNewPost({ ...newPost, tags: text })}
+          />
+          <Button title="Submit" onPress={handleNewPost} />
+          <Button title="Cancel" onPress={() => setModalVisible(false)} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -234,6 +242,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
   },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    width: 250,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 8,
+    borderRadius: 5,
+  },
 });
 
-export default App;
+export default CommunityForum;
