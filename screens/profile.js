@@ -1,73 +1,65 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useContext, useEffect } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { UserContext } from './UserContext';
 
 const ProfileScreen = () => {
+  const { user, setUser } = useContext(UserContext);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const API_URL = "http://192.168.8.112/web-capstone/app/db_connection/getuser.php";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: user?.email }) // Check if user is defined before accessing email
+        });
+        const result = await response.json();
+        if (result.Status) {
+          setUser(result.userData);
+        } else {
+          Alert.alert(result.Message);
+        }
+      } catch (error) {
+        Alert.alert("Error: " + error.message);
+      }
+    };
+
+    if (user && user.email) {
+      fetchUserProfile();
+    }
+  }, [user, setUser]);
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <Image
-          source={require('../assets/man.png')} 
-          style={styles.profileImage}
-        />
-        <Text style={styles.name}>Mama Mo Blue</Text>
-        <Text style={styles.bio}>Passionate about technology and innovation. Love to travel and explore new cultures. Always ready for a new challenge.</Text>
-      </View>
-      <View style={styles.socialIcons}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="logo-facebook" style={styles.icon} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="logo-twitter" style={styles.icon} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="logo-instagram" style={styles.icon} />
-        </TouchableOpacity>
+        <Image source={require('../assets/man.png')} style={styles.profileImage} />
+        <Text style={styles.name}>{user.Name}</Text>
+        <Text style={styles.bio}>{user.bio || "Bio not available"}</Text>
       </View>
       <View style={styles.additionalInfo}>
         <Text style={styles.infoLabel}>Address:</Text>
-        <Text style={styles.infoText}>House No. 123, Block 4, Lot 5</Text>
+        <Text style={styles.infoText}>{user.Address}</Text>
         <Text style={styles.infoLabel}>Contact Number:</Text>
-        <Text style={styles.infoText}>+63 912 345 6789</Text>
+        <Text style={styles.infoText}>{user.Contact_Number}</Text>
         <Text style={styles.infoLabel}>Email:</Text>
-        <Text style={styles.infoText}>mamamooasul@gmail.com</Text>
+        <Text style={styles.infoText}>{user.email}</Text>
       </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>EDIT</Text>
+      <TouchableOpacity style={styles.editButton}>
+        <Text style={styles.editButtonText}>EDIT</Text>
       </TouchableOpacity>
-
-      <Text style={styles.sectionTitle}>House Members</Text>
-      
-      <View style={styles.section}>
-        <View style={styles.member}>
-          <Image
-            source={require('../assets/wife.png')}
-            style={styles.memberImage}
-          />
-          <View style={styles.memberInfo}>
-            <Text style={styles.memberName}>Mama Mo Red</Text>
-            <Text style={styles.memberBio}>Enjoys gardening and cooking. Loves spending time with family and friends.</Text>
-            <Text style={styles.infoLabel}>Contact Number:</Text>
-            <Text style={styles.infoText}>+63 912 345 6790</Text>
-            <Text style={styles.infoLabel}>Email:</Text>
-            <Text style={styles.infoText}>mamamored@gmail.com</Text>
-          </View>
-        </View>
-        <View style={styles.member}>
-          <Image
-            source={require('../assets/boy.png')} 
-            style={styles.memberImage}
-          />
-          <View style={styles.memberInfo}>
-            <Text style={styles.memberName}>Anak koy Violet</Text>
-            <Text style={styles.memberBio}>Loves playing with toys and learning new things every day.</Text>
-            <Text style={styles.infoLabel}>Contact Number:</Text>
-            <Text style={styles.infoText}>N/A</Text>
-            <Text style={styles.infoLabel}>Email:</Text>
-            <Text style={styles.infoText}>N/A</Text>
-          </View>
-        </View>
-      </View>
     </ScrollView>
   );
 };
@@ -115,78 +107,17 @@ const styles = StyleSheet.create({
     color: '#212529',
     marginBottom: 15,
   },
-  socialIcons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  iconButton: {
-    marginHorizontal: 10,
-    padding: 10,
-    borderRadius: 50,
-    backgroundColor: '#e9ecef',
-  },
-  icon: {
-    fontSize: 24,
-    color: '#495057',
-  },
-  followButton: {
+  editButton: {
     backgroundColor: '#007bff',
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',
     marginBottom: 20,
   },
-  followButtonText: {
+  editButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#343a40',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  section: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
-  member: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    alignItems: 'center',
-  },
-  memberImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  memberInfo: {
-    alignItems: 'center',
-  },
-  memberName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#343a40',
-    marginBottom: 5,
-  },
-  memberBio: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#6c757d',
-    marginBottom: 10,
-    paddingHorizontal: 10,
   },
 });
 

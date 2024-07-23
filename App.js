@@ -13,18 +13,18 @@ import Guest from './screens/Guest';
 import Guest_log from './screens/guest_inquire';
 import Guest_history from './screens/sidebar/guest_inquire_log';
 import Profile from './screens/profile';
+import { UserProvider } from './screens/UserContext';  // Ensure correct import path
 import CheckPayment from './screens/CheckPayment';
-import Inbox from './screens/sidebar/inbox'; 
-import Guest_list from './screens/sidebar/guest_list'; 
-import Maintenance from './screens/sidebar/maintenance_request'; 
-import Maintenance_log from './screens/sidebar/maintenance_request_log'; 
-import Inquire_log from './screens/guest_inquire'; 
-import AcceptedGuest from './screens/option/AcceptedGuest'; 
+import Inbox from './screens/sidebar/inbox';
+import Guest_list from './screens/sidebar/guest_list';
+import Maintenance from './screens/sidebar/maintenance_request';
+import Maintenance_log from './screens/sidebar/maintenance_request_log';
+import Inquire_log from './screens/guest_inquire';
+import AcceptedGuest from './screens/option/AcceptedGuest';
 import DenyGuest from './screens/option/deny_guest';
-import CommunityForum from './screens/CommunityForum'; 
+import CommunityForum from './screens/CommunityForum';
 
 import { } from 'firebase/database';
-
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -58,87 +58,88 @@ function HomeTabs() {
       <Tab.Screen name="GenerateQR" component={GenerateQR} />
       <Tab.Screen name="Guest_log" component={Guest_log} />
       <Tab.Screen name="CheckPayment" component={CheckPayment} />
-      
     </Tab.Navigator>
   );
 }
 
 const App = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen
-          name="Login"
-          component={Login}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Register"
-          component={Register}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Home"
-          component={HomeTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Profile"
-          component={Profile}
-          options={{ title: 'Profile' }}
-        />
-        <Stack.Screen
-          name="Inbox"
-          component={Inbox}
-          options={{ title: 'Inbox' }}
-        />
-        <Stack.Screen
-          name="Guest_list"
-          component={Guest_list}
-          options={{ title: 'Guest_list' }}
-        />
-        <Stack.Screen
-          name="Guest"
-          component={Guest}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Maintenance"
-          component={Maintenance}
-          options={{ title: 'Maintenance Request' }}
-        />
-        <Stack.Screen
-          name="Maintenance_log"
-          component={Maintenance_log}
-          options={{ title: 'Maintenance Request Log' }}
-        />
-        <Stack.Screen
-          name="Guest_history"
-          component={Guest_history}
-          options={{ title: 'Guest Visit Log' }}
-        />
-         <Stack.Screen
-          name="GuestAccepted"
-          component={AcceptedGuest}
-          options={{ title: 'Guest Accepted' }}
-        />
-        <Stack.Screen
-          name="DenyGuest"
-          component={DenyGuest}
-          options={{ title: 'Deny Guest' }}
-        />
-        <Stack.Screen
-          name="CommunityForum"
-          component={CommunityForum}
-          options={{ title: 'Community Forum' }}
-        />
-        <Stack.Screen
-          name="Inquire_log"
-          component={Inquire_log}
-          options={{ title: 'Guest Inquire Log' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <UserProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen
+            name="Login"
+            component={Login}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={Register}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Home"
+            component={HomeTabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={Profile}
+            options={{ title: 'Profile' }}
+          />
+          <Stack.Screen
+            name="Inbox"
+            component={Inbox}
+            options={{ title: 'Inbox' }}
+          />
+          <Stack.Screen
+            name="Guest_list"
+            component={Guest_list}
+            options={{ title: 'Guest List' }}
+          />
+          <Stack.Screen
+            name="Guest"
+            component={Guest}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Maintenance"
+            component={Maintenance}
+            options={{ title: 'Maintenance Request' }}
+          />
+          <Stack.Screen
+            name="Maintenance_log"
+            component={Maintenance_log}
+            options={{ title: 'Maintenance Request Log' }}
+          />
+          <Stack.Screen
+            name="Guest_history"
+            component={Guest_history}
+            options={{ title: 'Guest Visit Log' }}
+          />
+          <Stack.Screen
+            name="GuestAccepted"
+            component={AcceptedGuest}
+            options={{ title: 'Guest Accepted' }}
+          />
+          <Stack.Screen
+            name="DenyGuest"
+            component={DenyGuest}
+            options={{ title: 'Deny Guest' }}
+          />
+          <Stack.Screen
+            name="CommunityForum"
+            component={CommunityForum}
+            options={{ title: 'Community Forum' }}
+          />
+          <Stack.Screen
+            name="Inquire_log"
+            component={Inquire_log}
+            options={{ title: 'Guest Inquire Log' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </UserProvider>
   );
 };
 

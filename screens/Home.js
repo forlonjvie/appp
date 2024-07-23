@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Sidebar from './Sidebar';
+import { UserContext } from './UserContext';
 
 const Home = ({ navigation }) => {
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
+  const { user } = useContext(UserContext);
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
@@ -16,7 +18,7 @@ const Home = ({ navigation }) => {
   };
 
   const homeowner = {
-    name: 'John Doe',
+    name: user?.Name || 'John Doe',
     image: require('../assets/man.png'), 
   };
 
@@ -47,6 +49,12 @@ const Home = ({ navigation }) => {
       {isSidebarVisible && <Sidebar onClose={toggleSidebar} navigation={navigation} />}
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* User Profile Container */}
+        <View style={styles.profileContainer}>
+          <Image source={homeowner.image} style={styles.profileImage} />
+          <Text style={styles.profileName}>{homeowner.name}</Text>
+        </View>
+
         {/* Dashboard Section */}
         <View style={styles.dashboard}>
           <Text style={styles.dashboardTitle}>Dashboard</Text>
@@ -153,6 +161,21 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  profileContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
   filters: {
     flexDirection: 'row',

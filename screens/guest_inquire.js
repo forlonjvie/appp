@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -7,51 +7,52 @@ import Sidebar from './Sidebar';
 const GuestList = () => {
   const navigation = useNavigation();
   const [isSidebarVisible, setSidebarVisible] = useState(false);
+  const [guests, setGuests] = useState([]);
+
+  useEffect(() => {
+    fetchGuests();
+  }, []);
+
+  const fetchGuests = async () => {
+    const API_URL = "http://192.168.8.112/web-capstone/app/db_connection/getvisit.php";
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await response.json();
+      if (result.Status) {
+        setGuests(result.Data);
+      } else {
+        console.log(result.Message);
+      }
+    } catch (error) {
+      console.error('Error fetching data: ', error);
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
   };
 
-  const [guests, setGuests] = useState([
-    {
-      id: '1',
-      name: 'Juan Dela Cruz',
-      address: '123 Main St, Manila',
-      date: '2024-06-25',
-      status: 'View',
-      image: 'https://via.placeholder.com/100'
-    },
-    {
-      id: '2',
-      name: 'Maria Clara',
-      address: '456 Elm St, Cebu',
-      date: '2024-06-20',
-      status: 'View',
-      image: 'https://via.placeholder.com/100'
-    },
-    {
-      id: '3',
-      name: 'Jose Rizal',
-      address: '789 Pine St, Davao',
-      date: '2024-06-28',
-      status: 'View',
-      image: 'https://via.placeholder.com/100'
-    }
-  ]);
-
   const renderItem = ({ item }) => (
     <View style={styles.guestItem}>
-      <Image source={{ uri: item.image }} style={styles.guestImage} />
+      <Image source={{ uri: 'https://via.placeholder.com/100' }} style={styles.guestImage} />
       <View style={styles.guestInfo}>
-        <Text style={styles.guestName}>{item.name}</Text>
-        <Text style={styles.guestAddress}><Icon name="place" size={16} color="#888" /> {item.address}</Text>
-        <Text style={styles.guestDate}><Icon name="calendar-today" size={16} color="#888" /> {item.date}</Text>
+        <Text style={styles.guestName}>{item.Guest_name}</Text>
+        <Text style={styles.guestAddress}><Icon name="place" size={16} color="#888" /> {item.HO_housenum}</Text>
+        <Text style={styles.guestEmail}><Icon name="email" size={16} color="#888" /> {item.Guest_email}</Text>
+        <Text style={styles.guestMessage}><Icon name="message" size={16} color="#888" /> {item.message}</Text>
       </View>
       <TouchableOpacity
         style={styles.statusButton}
         onPress={() => navigation.navigate('Guest', { guest: item })}
       >
-        <Text style={styles.statusButtonText}>{item.status}</Text>
+        <Text style={styles.statusButtonText}>View</Text>
       </TouchableOpacity>
     </View>
   );
@@ -74,7 +75,7 @@ const GuestList = () => {
         <FlatList
           data={guests}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => index.toString()}
           style={styles.guestList}
         />
       </View>
@@ -148,7 +149,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
-  guestDate: {
+  guestEmail: {
+    fontSize: 14,
+    color: '#888',
+  },
+  guestMessage: {
     fontSize: 14,
     color: '#888',
   },

@@ -1,40 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Button } from 'react-native';
-import { ref, push, set } from 'firebase/database';
-import { database } from '../firebaseConfig';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Button, Alert } from 'react-native';
 
-const ForumPost = ({ author, time, title, description, tags }) => {
+const ForumPost = ({ title, content }) => {
   return (
     <View style={styles.postContainer}>
-      <View style={styles.authorInfo}>
-        <Image source={require('../assets/man.png')} style={styles.avatar} />
-        <View>
-          <Text style={styles.authorName}>{author}</Text>
-          <Text style={styles.time}>{time}</Text>
-        </View>
-      </View>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
-      <View style={styles.tagsContainer}>
-        {tags.map((tag, index) => (
-          <Text key={index} style={styles.tag}>{tag}</Text>
-        ))}
-      </View>
+      <Text style={styles.description}>{content}</Text>
     </View>
   );
 };
 
 const CommunityForum = () => {
-  const [posts, setPosts] = useState([
-    {
-      author: 'Norma Andrews',
-      time: '30 minutes ago',
-      title: 'How to Foster Community Engagement',
-      description: 'Discussing strategies and practices for fostering meaningful community engagement in local neighborhoods.',
-      tags: ['community', 'engagement', 'local'],
-    },
-  ]);
-
+  const [posts, setPosts] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newPost, setNewPost] = useState({
     author: '',
@@ -43,6 +20,32 @@ const CommunityForum = () => {
     description: '',
     tags: '',
   });
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    const LoginAPIURL = "http://192.168.8.112/web-capstone/app/db_connection/getAnnouncement.php";
+
+    try {
+      const response = await fetch(LoginAPIURL, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      const jsonResponse = await response.json();
+      if (jsonResponse.Status) {
+        setPosts(jsonResponse.Data);
+      } else {
+        Alert.alert(jsonResponse.Message);
+      }
+    } catch (error) {
+      Alert.alert("Error: " + error.message);
+    }
+  };
 
   const handleNewPost = async () => {
     const postID = push(ref(database, 'homeowner/posts')).key;
@@ -89,7 +92,7 @@ const CommunityForum = () => {
       </View>
       <ScrollView style={styles.postsContainer}>
         {posts.map((post, index) => (
-          <ForumPost key={index} {...post} />
+          <ForumPost key={index} title={post.title} content={post.content} />
         ))}
       </ScrollView>
 
@@ -199,26 +202,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  authorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 50,
-    marginRight: 16,
-  },
-  authorName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  time: {
-    color: '#777',
-    fontSize: 12,
-  },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -228,19 +211,6 @@ const styles = StyleSheet.create({
   description: {
     color: '#555',
     marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tag: {
-    backgroundColor: '#eee',
-    padding: 4,
-    marginRight: 4,
-    marginBottom: 4,
-    borderRadius: 4,
-    fontSize: 12,
-    color: '#333',
   },
   modalView: {
     margin: 20,
