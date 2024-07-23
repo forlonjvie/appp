@@ -18,14 +18,11 @@ export default function Login({ navigation }) {
     }
 
     let hashedPassword = CryptoJS.MD5(password).toString();
-
     let LoginAPIURL = "http://192.168.8.112/web-capstone/app/db_connection/login.php";
-
     let headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     };
-
     let Data = {
       email: email,
       password: hashedPassword,
@@ -47,8 +44,8 @@ export default function Login({ navigation }) {
     .then((response) => {
       setLoading(false);
       if (response.Status) {
-        setUser(response.userData);
-        navigation.navigate('Home');  // Navigate to Home screen
+        setUser(response.userData); // Set the user data in the context
+        navigation.navigate('Home'); // Navigate to Home screen
       } else {
         Alert.alert(response.Message);
       }

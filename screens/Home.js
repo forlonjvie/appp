@@ -1,13 +1,30 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import axios from 'axios';
 import Sidebar from './Sidebar';
 import { UserContext } from './UserContext';
 
 const Home = ({ navigation }) => {
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
+  const [userData, setUserData] = useState(null);
   const { user } = useContext(UserContext);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await axios.get(`http://your-api-endpoint/user/${user?.id}`);
+        setUserData(response.data);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    };
+
+    if (user?.id) {
+      fetchUserData();
+    }
+  }, [user?.id]);
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
@@ -18,8 +35,8 @@ const Home = ({ navigation }) => {
   };
 
   const homeowner = {
-    name: user?.Name || 'John Doe',
-    image: require('../assets/man.png'), 
+    name: userData?.name || 'John Doe',
+    image: require('../assets/man.png'), // You can replace this with dynamic image URL if available
   };
 
   const monthlyBills = [
@@ -270,29 +287,34 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   chart: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 16,
-    borderRadius: 4,
+    marginBottom: 20,
   },
   chartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chartLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 4,
+    fontSize: 16,
+    color: '#333',
   },
   chartData: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 2,
+    color: '#007bff',
   },
   chartInfo: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
-    textAlign: 'center',
   },
 });
 
