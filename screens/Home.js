@@ -1,30 +1,41 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import axios from 'axios';
-import Sidebar from './Sidebar';
-import { UserContext } from './UserContext';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Button, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure you have this library installed
+import Sidebar from './Sidebar'; // Ensure you have a Sidebar component imported
 
-const Home = ({ navigation }) => {
+const HomeScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const [userData, setUserData] = useState(null);
-  const { user } = useContext(UserContext);
+  const [monthlyBills, setMonthlyBills] = useState([]);
+  const [visitLogs, setVisitLogs] = useState([]);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const getUserData = async () => {
       try {
-        const response = await axios.get(`http://your-api-endpoint/user/${user?.id}`);
-        setUserData(response.data);
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          setUser(JSON.parse(userData));
+        } else {
+          navigation.navigate('Login');
+        }
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
+        console.error("Failed to get user data:", error);
+        navigation.navigate('Login');
       }
     };
+    getUserData();
+  }, [navigation]);
 
-    if (user?.id) {
-      fetchUserData();
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error("Failed to remove user data:", error);
     }
-  }, [user?.id]);
+  };
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
@@ -32,26 +43,25 @@ const Home = ({ navigation }) => {
 
   const handleFilterChange = (filter) => {
     setSelectedFilter(filter);
+    // Load data based on the selected filter
+    // For example, update monthlyBills and visitLogs here
   };
 
-  const homeowner = {
-    name: userData?.name || 'John Doe',
-    image: require('../assets/man.png'), // You can replace this with dynamic image URL if available
-  };
-
-  const monthlyBills = [
+  // Example data for demonstration; replace with real data as needed
+  const exampleMonthlyBills = [
     { title: 'Electricity', amount: 'Php 1500', info: '+5% from last month' },
     { title: 'Water', amount: 'Php 500', info: '-10% from last month' },
     { title: 'Internet', amount: 'Php 2000', info: '+2% from last month' },
   ];
 
-  const visitLogs = [
+  const exampleVisitLogs = [
     { date: '2024-06-01', visitor: 'Mang Kanor', action: 'Naningil ng Utang' },
     { date: '2024-06-10', visitor: 'Janet', action: 'Naghahabol para sa anak' },
     { date: '2024-06-15', visitor: 'Manong Delivery Driver', action: 'Nagdeliver ng' },
   ];
 
   return (
+    
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={toggleSidebar}>
@@ -59,7 +69,7 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.title}>Home</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Image source={homeowner.image} style={styles.userImage} />
+          <Image source={user ? { uri: user.image } : null} style={styles.userImage} />
         </TouchableOpacity>
       </View>
 
@@ -67,11 +77,21 @@ const Home = ({ navigation }) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* User Profile Container */}
-        <View style={styles.profileContainer}>
-          <Image source={homeowner.image} style={styles.profileImage} />
-          <Text style={styles.profileName}>{homeowner.name}</Text>
+        {user && (
+          <View style={styles.profileContainer}>
+            <Image source={{ uri: user.image }} style={styles.profileImage} />
+            <Text style={styles.profileName}>{user.name}</Text>
+          </View>
+        )}
+<View style={styles.container}>
+      {user ? (
+        <View>
+          <Text>Welcome, {user.username}!</Text>
         </View>
-
+      ) : (
+        <Text>Loading...</Text>
+      )}
+    </View>
         {/* Dashboard Section */}
         <View style={styles.dashboard}>
           <Text style={styles.dashboardTitle}>Dashboard</Text>
@@ -121,7 +141,7 @@ const Home = ({ navigation }) => {
         {/* Monthly Bills Section */}
         {(selectedFilter === 'All' || selectedFilter === 'Monthly Bills') && (
           <View style={styles.stats}>
-            {monthlyBills.map((bill, index) => (
+            {exampleMonthlyBills.map((bill, index) => (
               <View style={styles.card} key={index}>
                 <Text style={styles.cardTitle}>{bill.title}</Text>
                 <Text style={styles.cardValue}>{bill.amount}</Text>
@@ -134,7 +154,7 @@ const Home = ({ navigation }) => {
         {/* Visit Logs Section */}
         {(selectedFilter === 'All' || selectedFilter === 'Visit Logs') && (
           <View style={styles.chart}>
-            {visitLogs.map((log, index) => (
+            {exampleVisitLogs.map((log, index) => (
               <View style={styles.chartItem} key={index}>
                 <Text style={styles.chartLabel}>{log.date}</Text>
                 <Text style={styles.chartData}>{log.visitor}</Text>
@@ -144,6 +164,7 @@ const Home = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
+
     </View>
   );
 };
@@ -235,25 +256,21 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 2,
     width: '48%',
   },
   dashboardCardContent: {
     marginLeft: 10,
   },
   dashboardCardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 5,
     color: '#333',
   },
   dashboardCardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: 18,
     color: '#007bff',
   },
   stats: {
@@ -265,21 +282,17 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 2,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
     color: '#333',
   },
   cardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: 16,
     color: '#007bff',
   },
   cardInfo: {
@@ -290,32 +303,40 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   chartItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 10,
+    padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 2,
   },
   chartLabel: {
     fontSize: 16,
+    fontWeight: 'bold',
     color: '#333',
   },
   chartData: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
     color: '#007bff',
   },
   chartInfo: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
+  },
+  logoutButton: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
-export default Home;
+export default HomeScreen;

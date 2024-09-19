@@ -1,28 +1,75 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import Sidebar from './Sidebar';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 
-const GenerateQR = ({ navigation }) => {
+const QRCode = () => {
+  const [user, setUser] = useState(null);
+  const navigation = useNavigation();
   const [isSidebarVisible, setSidebarVisible] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
   };
 
-  const homeowner = {
-    name: 'Juan',
-    image: require('../assets/man.png'), 
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const { username } = JSON.parse(userData);
+          const response = await axios.get(`http://172.69.69.115/4Capstone/app/db_connection/getuser.php?username=${username}`);
+          if (response.data.error) {
+            console.error("User not found");
+            navigation.navigate('Login');
+          } else {
+            setUser(response.data);
+          }
+        } else {
+          navigation.navigate('Login');
+        }
+      } catch (error) {
+        console.error("Failed to get user data:", error);
+        navigation.navigate('Login');
+      }
+    };
+    getUserData();
+  }, [navigation]);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error("Failed to remove user data:", error);
+    }
   };
 
-  const navigateToProfile = () => {
-    navigation.navigate('Profile');
+  const handleInquiry = async () => {
+    try {
+      const response = await axios.post('http://172.69.69.115/4Capstone/app/db_connection/submit_inquiry.php', {
+        homeowner_id: user.HO_Id,
+        name: `${user.fname} ${user.lname}`,
+        address: user.hnum,
+      });
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error submitting inquiry:', error);
+    }
   };
 
-  const handleGenerateNewQR = () => {
-    // Function to handle QR code generation
-    console.log('Generate new QR code');
-  };
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  
+  const imageUrl = `http://172.69.69.115/4Capstone/stuff/${user.qr_code}`;
 
   return (
     <View style={styles.container}>
@@ -30,38 +77,34 @@ const GenerateQR = ({ navigation }) => {
         <TouchableOpacity onPress={toggleSidebar}>
           <Icon name="menu" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>QR Code Generator</Text>
-        <TouchableOpacity onPress={navigateToProfile}>
-          <Image source={homeowner.image} style={styles.userImage} />
+        <Text style={styles.title}>My QR</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Image source={require('../assets/man.png')} style={styles.userImage} />
         </TouchableOpacity>
       </View>
 
       {isSidebarVisible && <Sidebar onClose={toggleSidebar} navigation={navigation} />}
 
-      <View style={styles.content}>
-        <Image
-          resizeMode="contain"
-          style={styles.image}
-          source={require('../assets/qr.png')}
-        />
-        <Text style={styles.homeOwnerText}>Home Owner: {homeowner.name}</Text>
-        <Text style={styles.description}>
-          This QR code can be used for accessing various services and facilities. Please present it whenever required.
-        </Text>
-        <TouchableOpacity style={styles.button} onPress={handleGenerateNewQR}>
-          <Text style={styles.buttonText}>Generate New QR Code</Text>
+      <View style={styles.profileContent}>
+        <View style={styles.headerContent}>
+          <Text style={styles.name}>{user.fname} {user.lname}</Text>
+          <Image source={{ uri: imageUrl }} style={styles.qrImage} />
+          <Text style={styles.detail}>This QR code is used for logging your entry or exit. Simply scan to record your time of arrival or departure.</Text>
+        </View>
+
+        {/* Inquiry Button */}
+        <TouchableOpacity style={styles.inquiryButton} onPress={handleInquiry}>
+          <Text style={styles.inquiryButtonText}>Send Inquiry</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-export default GenerateQR;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -86,41 +129,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fff',
   },
-  content: {
+  profileContent: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
-  image: {
-    height: 250,
-    width: 250,
+  headerContent: {
+    alignItems: 'center',
     marginBottom: 20,
   },
-  homeOwnerText: {
-    fontWeight: 'bold',
-    alignSelf: 'center',
-    fontSize: 20,
+  qrImage: {
+    width: 300,
+    height: 300,
+    marginTop: 25,
     marginBottom: 10,
-    color: '#333',
   },
-  description: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 20,
-    paddingHorizontal: 20,
+  name: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#343a40',
+    marginTop: 35,
   },
-  button: {
+  detail: {
+    fontSize: 15,
+    color: 'red',
+    marginTop: 20,
+    marginLeft: 40,
+    marginRight: 40,
+  },
+  inquiryButton: {
     backgroundColor: '#007bff',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+    padding: 15,
     borderRadius: 25,
-    elevation: 3,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  buttonText: {
+  inquiryButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
+
+export default QRCode;

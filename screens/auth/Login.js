@@ -1,90 +1,109 @@
-import React, { useState, useContext } from 'react';
-import { ScrollView, TouchableOpacity, View, KeyboardAvoidingView, Image, Alert } from 'react-native';
-import { Layout, Text, TextInput, Button, useTheme, themeColor } from 'react-native-rapi-ui';
-import CryptoJS from 'crypto-js';
-import { UserContext } from '../UserContext';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function Login({ navigation }) {
-  const { isDarkmode } = useTheme();
-  const { setUser } = useContext(UserContext);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const LoginScreen = ({ navigation }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (email.length === 0 || password.length === 0) {
-      Alert.alert("Required Field is Missing");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Required Field is Missing", "Please enter both email and password.");
       return;
     }
 
-    let hashedPassword = CryptoJS.MD5(password).toString();
-    let LoginAPIURL = "http://192.168.8.112/web-capstone/app/db_connection/login.php";
-    let headers = {
+    setLoading(true);
+
+    const LoginAPIURL = "http://172.69.69.115/4Capstone/app/db_connection/login.php";
+    const headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     };
-    let Data = {
+    const data = {
       email: email,
-      password: hashedPassword,
+      password: password,
     };
 
-    setLoading(true);
+    try {
+      const response = await fetch(LoginAPIURL, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(data)
+      });
 
-    fetch(LoginAPIURL, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(Data)
-    })
-    .then((response) => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      return response.json();
-    })
-    .then((response) => {
+
+      const responseData = await response.json();
+      console.log('Response Data:', responseData); // Debugging line
       setLoading(false);
-      if (response.Status) {
-        setUser(response.userData); // Set the user data in the context
-        navigation.navigate('Home'); // Navigate to Home screen
+
+      if (responseData.Status) {
+        const userData = responseData.userData;
+
+        if (userData) {
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+          navigation.navigate('Home');
+        } else {
+          Alert.alert("Login Failed", "User data is missing.");
+        }
       } else {
-        Alert.alert(response.Message);
+        Alert.alert("Login Failed", responseData.Message);
       }
-    })
-    .catch((error) => {
+    } catch (error) {
       setLoading(false);
-      Alert.alert("Error: " + error.message);
-    });
+      Alert.alert("Error", "An error occurred: " + error.message);
+    }
   };
 
   return (
-    <KeyboardAvoidingView behavior="height" enabled style={{ flex: 1 }}>
-      <Layout>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: isDarkmode ? "#17171E" : themeColor.white100 }}>
-            <Image resizeMode="contain" style={{ height: 220, width: 220 }} source={require("../../assets/log-in.png")} />
-          </View>
-          <View style={{ flex: 3, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: isDarkmode ? themeColor.dark : themeColor.white }}>
-            <Text fontWeight="bold" style={{ alignSelf: "center", padding: 30 }} size="h3">Login</Text>
-            <Text>Email</Text>
-            <TextInput containerStyle={{ marginTop: 15 }} placeholder="Enter your email" value={email} autoCapitalize="none" autoCompleteType="off" autoCorrect={false} keyboardType="email-address" onChangeText={(text) => setEmail(text)} />
-            <Text style={{ marginTop: 15 }}>Password</Text>
-            <TextInput containerStyle={{ marginTop: 15 }} placeholder="Enter your password" value={password} autoCapitalize="none" autoCompleteType="off" autoCorrect={false} secureTextEntry={true} onChangeText={(text) => setPassword(text)} />
-            <Button text={loading ? "Loading" : "Continue"} onPress={handleLogin} style={{ marginTop: 20 }} disabled={loading} />
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 15, justifyContent: "center" }}>
-              <Text size="md">Don't have an account?</Text>
-              <TouchableOpacity onPress={() => { navigation.navigate("Register"); }}>
-                <Text size="md" fontWeight="bold" style={{ marginLeft: 5, color: 'blue' }}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10, justifyContent: "center" }}>
-              <TouchableOpacity onPress={() => { navigation.navigate("ForgetPassword"); }}>
-                <Text size="md" fontWeight="bold" style={{ color: "red" }}>Forget password</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 30, justifyContent: "center" }} />
-          </View>
-        </ScrollView>
-      </Layout>
-    </KeyboardAvoidingView>
+    <View style={styles.container}>
+      <Text style={styles.title}>Login</Text>
+      <TextInput
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+      <TextInput
+        placeholder="Password"
+        secureTextEntry={true}
+        value={password}
+        onChangeText={setPassword}
+        style={styles.input}
+      />
+      <Button title="Login" onPress={handleLogin} />
+      {loading && <Text style={styles.loading}>Loading...</Text>}
+    </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  loading: {
+    marginTop: 16,
+    textAlign: 'center',
+  },
+});
+
+export default LoginScreen;

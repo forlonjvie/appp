@@ -1,0 +1,37 @@
+<?php
+$CN = mysqli_connect("localhost", "root", "", "admin_db");
+
+$post_id = $_POST['post_id'];  // Post ID sent from frontend
+
+$query = "SELECT p.id, p.title, p.content, p.created_at, ho.name AS author 
+          FROM Posts p
+          JOIN home_owner ho ON p.HO_Id = ho.HO_Id
+          WHERE p.id = $post_id";
+$result = mysqli_query($CN, $query);
+
+$postData = array();
+if (mysqli_num_rows($result) > 0) {
+    $postData = mysqli_fetch_assoc($result);
+
+    // Fetch comments for the post
+    $commentQuery = "SELECT c.content, c.created_at, ho.name AS commenter
+                     FROM Comments c
+                     JOIN home_owner ho ON c.HO_Id = ho.HO_Id
+                     WHERE c.post_id = $post_id ORDER BY c.created_at ASC";
+    $commentResult = mysqli_query($CN, $commentQuery);
+
+    $comments = array();
+    if (mysqli_num_rows($commentResult) > 0) {
+        while ($row = mysqli_fetch_assoc($commentResult)) {
+            $comments[] = $row;
+        }
+    }
+
+    $postData['comments'] = $comments;
+    $Response = array("Message" => "Post and comments retrieved successfully", "Status" => true, "Data" => $postData);
+} else {
+    $Response = array("Message" => "Post not found", "Status" => false);
+}
+
+echo json_encode($Response);
+?>

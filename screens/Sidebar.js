@@ -15,7 +15,7 @@ const Sidebar = ({ onClose }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Mail</Text>
+        <Text style={styles.headerText}> TAB_NAME</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Icon name="close" size={24} color="#000" />
         </TouchableOpacity>
@@ -23,22 +23,52 @@ const Sidebar = ({ onClose }) => {
 
       {/* Inbox Section */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Inbox')}>
-          <Icon name="inbox" size={24} color="#4CAF50" />
+      <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Announcement')}>
+          <Icon name="announcement" size={24} color="#9C27B0" />
+          <Text style={styles.itemText}>Announcement</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('CommunityForum')}>
+          <Icon name="forum" size={24} color="#9C27B0" />
+          <Text style={styles.itemText}>Community Thread</Text>
+        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Inbox')}>
+          <Icon name="mail" size={24} color="#4CAF50" />
           <Text style={styles.itemText}>Inbox</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>24</Text>
           </View>
+        </TouchableOpacity> */}
+      </View>
+
+      {/* Guest Section <TouchableOpacity onPress={() => navigation.navigate('Profile')}> */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Guest</Text>
+        <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Guest_log')}>
+          <Icon name="person-search" size={24} color="#FF4081" />
+          <Text style={styles.itemText}>Guests Inquire</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Guest_list')}>
+          <Icon name="people" size={24} color="#FF4081" />
+          <Text style={styles.itemText}>Guests Log</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Mailbox Section */}
+      {/* Bill Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Mailbox</Text>
-        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Guest_list')}>
-          <Icon name="favorite" size={24} color="#FF4081" />
-          <Text style={styles.itemText}>Guests</Text>
+      
+        <Text style={styles.sectionHeader}>Bill</Text>
+        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Upcoming_bills')}>
+          <Icon name="receipt" size={24} color="#FF9800" />
+          <Text style={styles.itemText}>Upcoming Bill/s</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('GuardLogin')}>
+          <Icon name="security" size={24} color="#9C27B0" />
+          <Text style={styles.itemText}>Guard Login</Text>
+        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Bill_log')}>
+          <Icon name="history" size={24} color="#FF9800" />
+          <Text style={styles.itemText}>Bill Log</Text>
+        </TouchableOpacity> */}
       </View>
 
       {/* Miscellaneous Section */}
@@ -49,23 +79,12 @@ const Sidebar = ({ onClose }) => {
           <Text style={styles.itemText}>Issue a maintenance request</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Maintenance_log')}>
-          <Icon name="info" size={24} color="#03A9F4" />
-          <Text style={styles.itemText}>Request status</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('CommunityForum')}>
-          <Icon name="forum" size={24} color="#9C27B0" />
-          <Text style={styles.itemText}>Community thread</Text>
+          <Icon name="assignment-turned-in" size={24} color="#03A9F4" />
+          <Text style={styles.itemText}>Request Status</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Guest Logs Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Guest Logs</Text>
-        <TouchableOpacity style={styles.item} onPress={() => navigateToScreen('Guest_history')}>
-          <Icon name="history" size={24} color="#607D8B" />
-          <Text style={styles.itemText}>Guest Log Records</Text>
-        </TouchableOpacity>
-      </View>
+      
     </View>
   );
 };
@@ -132,7 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    marginLeft: 'auto'
+    marginLeft: 'auto',
   },
   badgeText: {
     fontSize: 14,

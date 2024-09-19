@@ -1,25 +1,39 @@
 <?php
-$CN = mysqli_connect("localhost", "root", "", "admin_db");
+header('Content-Type: application/json');
 
-if (!$CN) {
-    die("Connection failed: " . mysqli_connect_error());
+// Database connection details
+$servername = "localhost";
+$dbUsername = "root";
+$dbPassword = "";
+$dbname = "admin_db";
+
+// Create a new mysqli connection
+$conn = new mysqli($servername, $dbUsername, $dbPassword, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
 }
 
-$email = $_POST['email'];
+// Get the username from the query parameter
+$username = $_GET['username']; 
 
-$query = "SELECT `id`, `Name`, `Contact_Number`, `Address`, `role`, `email`, `username`, `password` FROM `accounts` WHERE `email` = '$email'";
-$result = mysqli_query($CN, $query);
+// Prepare and execute SQL query
+$sql = "SELECT `HO_Id`, `username`, `fname`, `lname`, `hnum`, `con_num`, `email`,  `mid_ini` FROM `home_owner` WHERE username = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if (mysqli_num_rows($result) > 0) {
-    $userData = mysqli_fetch_assoc($result);
-    $Message = "Data retrieved successfully";
-    $Response = array("Message" => $Message, "Status" => true, "userData" => $userData);
+// Fetch and return the result
+if ($result->num_rows > 0) {
+    $user = $result->fetch_assoc();
+    echo json_encode($user);
 } else {
-    $Message = "No data found";
-    $Response = array("Message" => $Message, "Status" => false);
+    echo json_encode(["error" => "User not found"]);
 }
 
-echo json_encode($Response);
-
-mysqli_close($CN);
+// Close the statement and connection
+$stmt->close();
+$conn->close();
 ?>

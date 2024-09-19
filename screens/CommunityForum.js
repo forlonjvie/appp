@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, TextInput, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Button, Alert, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import Icon from 'react-native-vector-icons/Ionicons';  // Import Icon from react-native-vector-icons
 
-const ForumPost = ({ title, content }) => {
+const ForumPost = ({ title, content, writer, author, createdAt, onPress }) => {
   return (
-    <View style={styles.postContainer}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{content}</Text>
-    </View>
+    <TouchableOpacity onPress={onPress}>
+      <View style={styles.postContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{content}</Text>
+        <Text style={styles.meta}>By {writer} on {new Date(createdAt).toLocaleString()}</Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -14,22 +21,42 @@ const CommunityForum = () => {
   const [posts, setPosts] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newPost, setNewPost] = useState({
-    author: '',
-    time: '',
     title: '',
     description: '',
-    tags: '',
   });
+  const [user, setUser] = useState(null);
+  const [showNewPostBanner, setShowNewPostBanner] = useState(false); // New state for banner visibility
+  const [bannerAnimation] = useState(new Animated.Value(0)); // Animation for banner
+
+  const navigation = useNavigation();
 
   useEffect(() => {
-    fetchAnnouncements();
+    const fetchUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
-  const fetchAnnouncements = async () => {
-    const LoginAPIURL = "http://192.168.8.112/web-capstone/app/db_connection/getAnnouncement.php";
+  useEffect(() => {
+    fetchPosts();
+    const intervalId = setInterval(fetchPosts, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const fetchPosts = async () => {
+    const postsAPIURL = "http://172.69.69.115/4Capstone/app/db_connection/getPost.php";
 
     try {
-      const response = await fetch(LoginAPIURL, {
+      const response = await fetch(postsAPIURL, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -38,7 +65,26 @@ const CommunityForum = () => {
       });
       const jsonResponse = await response.json();
       if (jsonResponse.Status) {
-        setPosts(jsonResponse.Data);
+        const newPosts = jsonResponse.Data;
+        setPosts(newPosts);
+
+        // Check if there are new posts and show banner
+        if (newPosts.some(post => new Date(post.created_at).getTime() > Date.now() - 10000)) {
+          setShowNewPostBanner(true);
+          Animated.timing(bannerAnimation, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+          setTimeout(() => {
+            Animated.timing(bannerAnimation, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }).start();
+            setShowNewPostBanner(false);
+          }, 5000); // Banner shows for 5 seconds
+        }
       } else {
         Alert.alert(jsonResponse.Message);
       }
@@ -48,51 +94,70 @@ const CommunityForum = () => {
   };
 
   const handleNewPost = async () => {
-    const postID = push(ref(database, 'homeowner/posts')).key;
-    const currentTime = new Date().toISOString();
+    if (!user) {
+      Alert.alert('User not logged in');
+      return;
+    }
+
     const postData = {
-      author: newPost.author,
-      time: currentTime,
+      author: user.username,
+      writer: user.username,
       title: newPost.title,
       description: newPost.description,
-      tags: newPost.tags.split(',').map(tag => tag.trim()),
     };
 
     try {
-      await set(ref(database, `homeowner/posts/${postID}`), postData);
-      setPosts([...posts, postData]);
-      setNewPost({ author: '', time: '', title: '', description: '', tags: '' });
-      setModalVisible(false);
+      const response = await fetch('http://172.69.69.115/4Capstone/app/db_connection/addPost.php', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(postData),
+      });
+
+      const jsonResponse = await response.json();
+      if (jsonResponse.Status) {
+        setNewPost({ title: '', description: '' });
+        setModalVisible(false);
+        fetchPosts(); // Refetch posts to update list
+      } else {
+        Alert.alert(jsonResponse.Message);
+      }
     } catch (error) {
       console.error("Error saving new post: ", error);
     }
   };
 
+  const bannerTranslateY = bannerAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-50, 0] // Banner moves from above to its position
+  });
+
   return (
     <View style={styles.container}>
+      {/* New Post Banner */}
+      {showNewPostBanner && (
+        <Animated.View style={[styles.banner, { transform: [{ translateY: bannerTranslateY }] }]}>
+          <Text style={styles.bannerText}>New posts available! 🎉</Text>
+        </Animated.View>
+      )}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Community Forum</Text>
-        <TouchableOpacity style={styles.newPostButton} onPress={() => setModalVisible(true)}>
-          <Text style={styles.newPostButtonText}>+</Text>
-        </TouchableOpacity>
       </View>
-      <View style={styles.tabs}>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Newest</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Featured</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>All posts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
-          <Text style={styles.tabText}>Unanswered</Text>
-        </TouchableOpacity>
-      </View>
+
       <ScrollView style={styles.postsContainer}>
         {posts.map((post, index) => (
-          <ForumPost key={index} title={post.title} content={post.content} />
+          <ForumPost 
+            key={index} 
+            title={post.title} 
+            content={post.content} 
+            writer={post.HO_username} 
+            author={post.username} 
+            createdAt={post.created_at}
+            onPress={() => navigation.navigate('PostDetail', { postId: post.post_id })}
+          />
         ))}
       </ScrollView>
 
@@ -100,18 +165,10 @@ const CommunityForum = () => {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
+        onRequestClose={() => setModalVisible(!modalVisible)}
       >
         <View style={styles.modalView}>
           <Text style={styles.modalTitle}>New Post</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Author"
-            value={newPost.author}
-            onChangeText={(text) => setNewPost({ ...newPost, author: text })}
-          />
           <TextInput
             style={styles.input}
             placeholder="Title"
@@ -124,16 +181,18 @@ const CommunityForum = () => {
             value={newPost.description}
             onChangeText={(text) => setNewPost({ ...newPost, description: text })}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Tags (comma separated)"
-            value={newPost.tags}
-            onChangeText={(text) => setNewPost({ ...newPost, tags: text })}
-          />
           <Button title="Submit" onPress={handleNewPost} />
           <Button title="Cancel" onPress={() => setModalVisible(false)} />
         </View>
       </Modal>
+
+      <TouchableOpacity
+        style={styles.composeButton}
+        onPress={() => navigation.navigate('compose_blog')}
+      >
+        <Icon name="create-outline" size={24} color="#fff" />
+        <Text style={styles.composeButtonText}>Compose</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -157,30 +216,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  newPostButton: {
+  banner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#007bff',
-    padding: 8,
-    borderRadius: 50,
+    padding: 10,
+    alignItems: 'center',
+    zIndex: 1000,
   },
-  newPostButtonText: {
+  bannerText: {
     color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  tabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  tab: {
-    padding: 8,
-  },
-  tabText: {
-    color: '#007bff',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -212,6 +259,10 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 8,
   },
+  meta: {
+    fontSize: 12,
+    color: '#777',
+  },
   modalView: {
     margin: 20,
     backgroundColor: 'white',
@@ -240,6 +291,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 8,
     borderRadius: 5,
+  },
+  composeButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  composeButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

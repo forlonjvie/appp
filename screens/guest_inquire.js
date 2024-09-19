@@ -3,40 +3,51 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Sidebar from './Sidebar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const GuestList = () => {
   const navigation = useNavigation();
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const [guests, setGuests] = useState([]);
-
-  useEffect(() => {
-    fetchGuests();
-  }, []);
-
-  const fetchGuests = async () => {
-    const API_URL = "http://192.168.8.112/web-capstone/app/db_connection/getvisit.php";
-
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      const result = await response.json();
-      if (result.Status) {
-        setGuests(result.Data);
-      } else {
-        console.log(result.Message);
-      }
-    } catch (error) {
-      console.error('Error fetching data: ', error);
-    }
-  };
+  const [loading, setLoading] = useState(true);
 
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
+  };
+
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const { username } = JSON.parse(userData);
+          const response = await axios.get(`http://172.69.69.115/4Capstone/app/db_connection/getVisit.php?username=${username}`);
+          if (response.data.error) {
+            setGuests([]);
+            setLoading(false); // No visitor case
+          } else {
+            setGuests(response.data);
+            setLoading(false);
+          }
+        } else {
+          navigation.navigate('Login');
+        }
+      } catch (error) {
+        console.error("Failed to get user data:", error);
+        navigation.navigate('Login');
+      }
+    };
+    getUserData();
+  }, [navigation]);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error("Failed to remove user data:", error);
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -44,8 +55,19 @@ const GuestList = () => {
       <Image source={{ uri: 'https://via.placeholder.com/100' }} style={styles.guestImage} />
       <View style={styles.guestInfo}>
         <Text style={styles.guestName}>{item.Guest_name}</Text>
-        <Text style={styles.guestAddress}><Icon name="place" size={16} color="#888" /> {item.HO_housenum}</Text>
-        <Text style={styles.guestEmail}><Icon name="email" size={16} color="#888" /> {item.Guest_email}</Text>
+        <Text style={[styles.offScreen, styles.guestAddress]}>
+  <Icon name="place" size={16} color="#888" /> {item.guest_add}
+</Text>
+<Text style={[styles.offScreen, styles.guestEmail]}>
+  <Icon name="email" size={16} color="#888" /> {item.Guest_email}
+</Text>
+<Text style={[styles.offScreen, styles.guestEmail]}>
+  <Icon name="place" size={16} color="#888" /> {item.relation}
+</Text>
+<Text style={[styles.offScreen, styles.guestEmail]}>
+  <Icon name="place" size={16} color="#888" /> {item.visit_date}
+</Text>
+
         <Text style={styles.guestMessage}><Icon name="message" size={16} color="#888" /> {item.message}</Text>
       </View>
       <TouchableOpacity
@@ -56,6 +78,14 @@ const GuestList = () => {
       </TouchableOpacity>
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -72,12 +102,18 @@ const GuestList = () => {
       {isSidebarVisible && <Sidebar onClose={toggleSidebar} navigation={navigation} />}
 
       <View style={styles.content}>
-        <FlatList
-          data={guests}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => index.toString()}
-          style={styles.guestList}
-        />
+        {guests.length === 0 ? (
+          <View style={styles.noVisitorContainer}>
+            <Text style={styles.noVisitorText}>NO Visitor</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={guests}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => index.toString()}
+            style={styles.guestList}
+          />
+        )}
       </View>
     </View>
   );
@@ -149,6 +185,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
+  offScreen: {
+    position: 'absolute',
+    left: -9999, // Move off-screen
+  },
   guestEmail: {
     fontSize: 14,
     color: '#888',
@@ -172,5 +212,15 @@ const styles = StyleSheet.create({
   statusButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  noVisitorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noVisitorText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007bff',
   },
 });

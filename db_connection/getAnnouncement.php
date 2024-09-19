@@ -1,7 +1,7 @@
 <?php
 $CN = mysqli_connect("localhost", "root", "", "admin_db");
 
-$query = "SELECT `title`, `content` FROM `announcement`";
+$query = "SELECT `title`, `content` , `date_time` FROM `announcement`  ORDER BY `announcement`.`id` DESC";
 $result = mysqli_query($CN, $query);
 
 if (mysqli_num_rows($result) > 0) {

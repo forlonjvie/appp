@@ -1,38 +1,47 @@
-import React, { useContext, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { UserContext } from './UserContext';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
-const ProfileScreen = () => {
-  const { user, setUser } = useContext(UserContext);
+const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const API_URL = "http://192.168.8.112/web-capstone/app/db_connection/getuser.php";
-
+    const getUserData = async () => {
       try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email: user?.email }) // Check if user is defined before accessing email
-        });
-        const result = await response.json();
-        if (result.Status) {
-          setUser(result.userData);
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const { username } = JSON.parse(userData);
+          const response = await axios.get(`http://172.69.69.115/4Capstone/app/db_connection/getuser.php?username=${username}`);
+          if (response.data.error) {
+            console.error("User not found");
+            navigation.navigate('Login');
+          } else {
+            setUser(response.data);
+          }
         } else {
-          Alert.alert(result.Message);
+          navigation.navigate('Login');
         }
       } catch (error) {
-        Alert.alert("Error: " + error.message);
+        console.error("Failed to get user data:", error);
+        navigation.navigate('Login');
       }
     };
+    getUserData();
+  }, [navigation]);
 
-    if (user && user.email) {
-      fetchUserProfile();
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error("Failed to remove user data:", error);
     }
-  }, [user, setUser]);
+  };
+
+  const handleEditInformation = () => {
+    navigation.navigate('EditProfile'); // Assuming you have an edit profile screen
+  };
 
   if (!user) {
     return (
@@ -42,31 +51,38 @@ const ProfileScreen = () => {
     );
   }
 
+  const imageUrl = `http://172.69.69.115/4Capstone/stuff/${user.image}`;
+  
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Image source={require('../assets/man.png')} style={styles.profileImage} />
-        <Text style={styles.name}>{user.Name}</Text>
-        <Text style={styles.bio}>{user.bio || "Bio not available"}</Text>
+        <Image source={{ uri: imageUrl }} style={styles.profileImage} />
+        <Text style={styles.name}>{user.fname} {user.lname}</Text>
       </View>
+
       <View style={styles.additionalInfo}>
-        <Text style={styles.infoLabel}>Address:</Text>
-        <Text style={styles.infoText}>{user.Address}</Text>
-        <Text style={styles.infoLabel}>Contact Number:</Text>
-        <Text style={styles.infoText}>{user.Contact_Number}</Text>
         <Text style={styles.infoLabel}>Email:</Text>
         <Text style={styles.infoText}>{user.email}</Text>
+        <Text style={styles.infoLabel}>Address:</Text>
+        <Text style={styles.infoText}>{user.hnum + ", Roxaco Landing Subdivision, Nasugbu, Batangas"}</Text>
+        <Text style={styles.infoLabel}>Contact Number:</Text>
+        <Text style={styles.infoText}>{user.con_num}</Text>
       </View>
-      <TouchableOpacity style={styles.editButton}>
-        <Text style={styles.editButtonText}>EDIT</Text>
+
+      <TouchableOpacity style={styles.editButton} onPress={handleEditInformation}>
+        <Text style={styles.editButtonText}>Edit Information</Text>
       </TouchableOpacity>
-    </ScrollView>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Log out</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: '#f8f9fa',
     padding: 20,
   },
@@ -86,13 +102,6 @@ const styles = StyleSheet.create({
     color: '#343a40',
     marginBottom: 5,
   },
-  bio: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#6c757d',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
   additionalInfo: {
     marginBottom: 30,
   },
@@ -108,13 +117,24 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   editButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#28a745',
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',
     marginBottom: 20,
   },
   editButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
